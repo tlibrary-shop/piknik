@@ -1,10 +1,7 @@
-const crypto = require('crypto');
+import { get, put } from '@vercel/blob';
+import crypto from 'node:crypto';
 
-const OWNER = 'tlibrary-shop';
-const REPO = 'piknik';
-const FILE_PATH = 'data/piknik.json';
-const API_BASE = 'https://api.github.com';
-
+const FILE_PATH = 'piknik/data.json';
 const seedParticipants = [
   {
     "id": "p-1",
@@ -349,64 +346,39 @@ function verify(token, secret) {
     const expected = crypto.createHmac('sha256', secret).update(body).digest();
     const actual = Buffer.from(sig, 'base64url');
     if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) return false;
-    const payload = JSON.parse(Buffer.from(body, 'base64url').toString());
-    return payload.exp > Date.now();
+    return JSON.parse(Buffer.from(body, 'base64url').toString()).exp > Date.now();
   } catch { return false; }
 }
-async function github(path, options = {}) {
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) throw new Error('Server belum dikonfigurasi: GITHUB_TOKEN belum tersedia.');
-  const response = await fetch(API_BASE + path, {
-    ...options,
-    headers: {
-      Accept: 'application/vnd.github+json',
-      Authorization: 'Bearer ' + token,
-      'X-GitHub-Api-Version': '2022-11-28',
-      ...(options.headers || {})
-    }
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const error = new Error(data.message || 'GitHub storage error (' + response.status + ')');
-    error.status = response.status;
-    throw error;
-  }
-  return data;
-}
 async function readState() {
-  try {
-    const file = await github('/repos/' + OWNER + '/' + REPO + '/contents/' + FILE_PATH);
-    const decoded = Buffer.from(file.content.replace(/\n/g, ''), 'base64').toString('utf8');
-    return { state: JSON.parse(decoded), sha: file.sha };
-  } catch (error) {
-    if (error.status === 404) return { state: emptyState(), sha: null };
-    throw error;
-  }
+  const blob = await get(FILE_PATH, { access: 'private' });
+  if (!blob) return { state: emptyState(), etag: null };
+  const raw = await new Response(blob.stream).text();
+  const state = JSON.parse(raw);
+  return { state, etag: blob.blob.etag };
 }
-async function writeState(state, sha) {
-  const content = Buffer.from(JSON.stringify(state, null, 2), 'utf8').toString('base64');
-  const result = await github('/repos/' + OWNER + '/' + REPO + '/contents/' + FILE_PATH, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message: 'Update data Piknik',
-      content,
-      ...(sha ? { sha } : {})
-    })
+async function writeState(state, etag) {
+  await put(FILE_PATH, JSON.stringify(state, null, 2), {
+    access: 'private',
+    contentType: 'application/json',
+    allowOverwrite: true,
+    ...(etag ? { ifMatch: etag } : {})
   });
-  return result;
 }
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   const secret = process.env.ADMIN_PASSWORD;
-  if (!process.env.GITHUB_TOKEN || !secret) {
-    return res.status(503).json({ error: 'Server belum dikonfigurasi. Pengelola perlu mengatur GITHUB_TOKEN dan ADMIN_PASSWORD satu kali di hosting.' });
+  if (!process.env.BLOB_READ_WRITE_TOKEN || !secret) {
+    return res.status(503).json({ error: 'Server belum dikonfigurasi. Buat Vercel Blob Storage dan atur ADMIN_PASSWORD satu kali di hosting.' });
   }
   try {
     if (req.method === 'GET') {
-      const { state } = await readState();
-      const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+      let { state, etag } = await readState();
+      if (!etag) {
+        await writeState(state, null);
+        ({ state, etag } = await readState());
+      }
+      const token = String(req.headers.authorization || '').replace(/^Bearer\\s+/i, '');
       return res.status(200).json({ ...state, isAdmin: verify(token, secret) });
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'Metode tidak didukung.' });
@@ -417,9 +389,9 @@ module.exports = async function handler(req, res) {
       }
       return res.status(200).json({ token: sign({ exp: Date.now() + 7 * 24 * 60 * 60 * 1000 }, secret) });
     }
-    const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    const token = String(req.headers.authorization || '').replace(/^Bearer\\s+/i, '');
     if (!verify(token, secret)) return res.status(401).json({ error: 'Sesi koordinator tidak valid. Silakan login kembali.' });
-    const { state, sha } = await readState();
+    const { state, etag } = await readState();
     if (!Array.isArray(state.participants)) state.participants = seedParticipants;
     if (!Array.isArray(state.events)) state.events = [];
     if (!Array.isArray(state.announcements)) state.announcements = [];
@@ -445,11 +417,10 @@ module.exports = async function handler(req, res) {
     } else {
       return res.status(400).json({ error: 'Jenis perubahan tidak dikenal.' });
     }
-    await writeState(state, sha);
+    await writeState(state, etag);
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error('Piknik API error:', error);
-    const status = error.status === 409 ? 409 : 500;
-    return res.status(status).json({ error: status === 409 ? 'Ada perubahan bersamaan. Muat ulang lalu coba lagi.' : 'Gagal menyimpan data. ' + error.message });
+    return res.status(500).json({ error: 'Gagal menyimpan data. ' + (error.message || 'Kesalahan server.') });
   }
-};
+}
