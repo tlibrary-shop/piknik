@@ -378,7 +378,7 @@ export default async function handler(req, res) {
         await writeState(state, null);
         ({ state, etag } = await readState());
       }
-      const token = String(req.headers.authorization || '').replace(/^Bearer\\s+/i, '');
+      const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
       return res.status(200).json({ ...state, isAdmin: verify(token, secret) });
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'Metode tidak didukung.' });
@@ -389,7 +389,7 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ token: sign({ exp: Date.now() + 7 * 24 * 60 * 60 * 1000 }, secret) });
     }
-    const token = String(req.headers.authorization || '').replace(/^Bearer\\s+/i, '');
+    const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
     if (!verify(token, secret)) return res.status(401).json({ error: 'Sesi koordinator tidak valid. Silakan login kembali.' });
     const { state, etag } = await readState();
     if (!Array.isArray(state.participants)) state.participants = seedParticipants;
