@@ -9,7 +9,8 @@ Aplikasi pendataan peserta dan checklist perjalanan bus. Tidak menggunakan Supab
 - Riwayat aktivitas dan daftar peserta yang belum kembali ke bus.
 - Pengumuman untuk seluruh peserta.
 - Akses koordinator dengan satu kata sandi.
-- Sinkronisasi data bersama antarperangkat melalui API server.
+- Sinkronisasi data antarperangkat otomatis setiap 7 detik.
+- Penyimpanan permanen di Vercel Blob (private storage).
 - Tampilan responsif untuk HP dan desktop.
 
 ## Rute
@@ -19,18 +20,16 @@ Aplikasi pendataan peserta dan checklist perjalanan bus. Tidak menggunakan Supab
 4. Andi Offset — Kepulangan
 
 ## Setup hosting satu kali
-Aplikasi memakai file JSON di repository GitHub sebagai penyimpanan server. Tidak ada Supabase, database eksternal, URL Supabase, atau key Supabase.
+1. Buka project Piknik di Vercel → **Storage** → **Create Database** → **Blob**.
+2. Pilih **Private** storage dan hubungkan ke project Piknik. Vercel akan menambahkan `BLOB_READ_WRITE_TOKEN` otomatis.
+3. Buka **Settings → Environment Variables**, tambahkan `ADMIN_PASSWORD` berisi kata sandi rahasia pilihanmu.
+4. Redeploy project.
 
-Di Vercel → Project Piknik → Settings → Environment Variables, tambahkan:
-
-- `GITHUB_TOKEN`: GitHub Personal Access Token dengan akses **Contents: Read and write** hanya ke repository `tlibrary-shop/piknik`.
-- `ADMIN_PASSWORD`: kata sandi rahasia untuk login koordinator.
-
-Simpan keduanya untuk Production, lalu Redeploy. Jangan pernah menaruh token GitHub di file frontend atau membagikannya ke peserta.
+Setelah itu tidak ada URL Supabase, API key, GitHub token, atau database eksternal yang perlu diatur. Data disimpan di private Blob milik project Vercel.
 
 ## Pemakaian
-- Semua orang dapat membuka dashboard dan melihat data peserta, checklist, serta pengumuman.
-- Hanya koordinator yang mengetahui kata sandi dapat mencatat turun/naik, mengubah data peserta, dan membuat pengumuman.
+- Semua orang dapat melihat dashboard, data peserta, checklist, dan pengumuman.
+- Hanya koordinator yang mengetahui kata sandi dapat mengubah checklist, data peserta, dan pengumuman.
 - Sesi koordinator berlaku 7 hari pada perangkat yang digunakan.
 
 ## Data awal
