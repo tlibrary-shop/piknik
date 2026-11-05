@@ -151,7 +151,7 @@ insert into public.trip_participants (position, name, category) values
   (33, "Cecilia Prima Normaningtyas", 'Anggota'),
   (34, "Lolyta Beby Kristina", 'Anggota'),
   (35, "Diah Ayu Kristiani", 'Anggota'),
-  (36, "Berladinda Yosiasvi Olga", 'Anggota'),
+  (36, "Berladinda Yosiasviolga", 'Anggota'),
   (37, "Rahel", 'Anggota'),
   (38, "Alent", 'Anggota'),
   (39, "Susana Setyawati K", 'Anggota'),
