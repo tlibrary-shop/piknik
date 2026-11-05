@@ -19,7 +19,7 @@ Aplikasi web pendataan peserta dan checklist perjalanan bus. Frontend statis, da
 4. Andi Offset — Kepulangan
 
 ## Jumlah peserta
-**47 orang total, sudah termasuk 5 tetangga.** Seed database menyediakan 42 slot anggota sementara dan lima nama tetangga: Ajeng, Bagus, Bpk Sri, Bapak Wakijo, dan Bapak Prapto. Nama anggota yang belum tersedia harus diganti koordinator sesuai daftar asli. Tidak ada nama yang ditebak.
+**47 orang total, sudah termasuk 5 tetangga.** Seed database sudah berisi seluruh nama dari roster BUS 9. Nomor 43, 45, dan 47 dicatat sebagai anggota keluarga Bpk Sri, Bapak Wakijo, dan Bapak Prapto karena nama pribadi mereka tidak tercantum pada daftar.
 
 ## Setup database (wajib untuk penggunaan bersama)
 1. Siapkan project Supabase khusus aplikasi ini.
@@ -41,7 +41,7 @@ Aplikasi web pendataan peserta dan checklist perjalanan bus. Frontend statis, da
 Frontend statis, tidak membutuhkan build step. Bisa di-host di GitHub Pages, Cloudflare Pages, Netlify, atau server web biasa. Pastikan `index.html` menjadi root entrypoint.
 
 ## Catatan data awal
-Seed database membuat 47 baris: lima nama tetangga sudah diisi dan 42 slot anggota perlu diperbarui sesuai daftar peserta final. Edit nama dilakukan dari menu **Data Peserta** setelah login koordinator.
+Seed database membuat atau memperbarui 47 baris sesuai roster BUS 9. Menjalankan ulang blok seed akan memperbaiki nama dan kategori berdasarkan nomor peserta.
 
 ## Struktur
 - `index.html` — antarmuka dan logika frontend.
