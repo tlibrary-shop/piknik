@@ -47,7 +47,7 @@ alter table public.trip_announcements enable row level security;
 
 grant select on public.trip_admins to authenticated;
 grant select on public.trip_participants to anon, authenticated;
-grant update, insert on public.trip_participants to authenticated;
+grant update on public.trip_participants to authenticated;
 grant select on public.trip_events to anon, authenticated;
 grant insert, delete on public.trip_events to authenticated;
 grant select on public.trip_announcements to anon, authenticated;
@@ -63,11 +63,6 @@ drop policy if exists "Anyone can read participants" on public.trip_participants
 create policy "Anyone can read participants"
 on public.trip_participants for select to anon, authenticated
 using (true);
-
-drop policy if exists "Only coordinators can add participants" on public.trip_participants;
-create policy "Only coordinators can add participants"
-on public.trip_participants for insert to authenticated
-with check (exists (select 1 from public.trip_admins a where a.user_id = (select auth.uid())));
 
 drop policy if exists "Only coordinators can edit participants" on public.trip_participants;
 create policy "Only coordinators can edit participants"
