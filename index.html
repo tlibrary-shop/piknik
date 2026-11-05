@@ -89,7 +89,7 @@
 let supabaseCreateClient=null;
 async function getSupabaseCreateClient(){if(supabaseCreateClient)return supabaseCreateClient;const mod=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');supabaseCreateClient=mod.createClient;return supabaseCreateClient;}
 const $=s=>document.querySelector(s);
-const $=s=>[...document.querySelectorAll(s)];
+const $$=s=>[...document.querySelectorAll(s)];
 const STOPS=[
  {key:'andi_berangkat',name:'Andi Offset',sub:'Keberangkatan',desc:'Titik awal perjalanan — seluruh peserta berkumpul dan naik bus.'},
  {key:'lidulapa',name:'Oleh-Oleh Lidulapa',sub:'Kunjungan 1',desc:'Catat peserta saat turun untuk berbelanja dan saat kembali ke bus.'},
