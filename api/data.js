@@ -367,8 +367,8 @@ async function writeState(state, etag) {
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  const secret = process.env.ADMIN_PASSWORD;
-  if (!process.env.BLOB_READ_WRITE_TOKEN || !secret) {
+  const secret = process.env.ADMIN_PASSWORD || '3twidy'; // Kata sandi sementara; ganti/hapus setelah aplikasi tidak dipakai.
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return res.status(503).json({ error: 'Server belum dikonfigurasi. Buat Vercel Blob Storage dan atur ADMIN_PASSWORD satu kali di hosting.' });
   }
   try {
