@@ -112,20 +112,61 @@ create policy "Only coordinators can delete announcements"
 on public.trip_announcements for delete to authenticated
 using (exists (select 1 from public.trip_admins a where a.user_id = (select auth.uid())));
 
--- Seed data: 47 peserta total, termasuk 5 tetangga yang sudah disebutkan.
--- 42 nama anggota masih berupa slot sementara karena daftar nama asli tidak tersedia di repo.
-insert into public.trip_participants (position, name, category)
-select n, 'Anggota ' || lpad(n::text, 2, '0'), 'Anggota'
-from generate_series(1,42) as n
-on conflict (position) do nothing;
-
+-- Seed data: roster BUS 9, 47 peserta total.
+-- Posisi 43, 45, dan 47 adalah anggota keluarga tetangga yang namanya tidak tercantum.
+-- Upsert agar seed ini juga memperbaiki data lama (mis. Anggota 01–42 / tetangga salah posisi).
 insert into public.trip_participants (position, name, category) values
-  (43, 'Ajeng', 'Tetangga'),
-  (44, 'Bagus', 'Tetangga'),
-  (45, 'Bpk Sri', 'Tetangga'),
-  (46, 'Bapak Wakijo', 'Tetangga'),
-  (47, 'Bapak Prapto', 'Tetangga')
-on conflict (position) do nothing;
+  (1, "Tri Widyanto", 'Anggota'),
+  (2, "Anastasya Widya Pranawengrum", 'Anggota'),
+  (3, "Barbara Widyas Listyasari", 'Anggota'),
+  (4, "Paulus Rochad", 'Anggota'),
+  (5, "Tristan", 'Anggota'),
+  (6, "Javas", 'Anggota'),
+  (7, "Nunik Indarti", 'Anggota'),
+  (8, "Nadiva Kautsar", 'Anggota'),
+  (9, "Dinda Indarti", 'Anggota'),
+  (10, "Sicilia Indira Sari", 'Anggota'),
+  (11, "Dian Eka", 'Anggota'),
+  (12, "Key", 'Anggota'),
+  (13, "Putri Ambar Ayuningtyas", 'Anggota'),
+  (14, "Atalia Angela Calista", 'Anggota'),
+  (15, "Puji Astuti", 'Anggota'),
+  (16, "Cella", 'Anggota'),
+  (17, "Theodora Butar Puspita", 'Anggota'),
+  (18, "Stevanus Panji", 'Anggota'),
+  (19, "Yolenta Sekly", 'Anggota'),
+  (20, "Sirilus Labowa", 'Anggota'),
+  (21, "Fransisca Avisa Benita Christabel", 'Anggota'),
+  (22, "Renaldo Ezra Perdana Chandra Herman", 'Anggota'),
+  (23, "Suparmi", 'Anggota'),
+  (24, "Azahira Jelita", 'Anggota'),
+  (25, "Andreas Haris Susanto", 'Anggota'),
+  (26, "Christin", 'Anggota'),
+  (27, "Oxcel", 'Anggota'),
+  (28, "Yessa", 'Anggota'),
+  (29, "Friska Tarihoran", 'Anggota'),
+  (30, "Endah Prihatin", 'Anggota'),
+  (31, "Esha", 'Anggota'),
+  (32, "Daniel Rigen Sasongko Aji", 'Anggota'),
+  (33, "Cecilia Prima Normaningtyas", 'Anggota'),
+  (34, "Lolyta Beby Kristina", 'Anggota'),
+  (35, "Diah Ayu Kristiani", 'Anggota'),
+  (36, "Berladinda Yosiasvi Olga", 'Anggota'),
+  (37, "Rahel", 'Anggota'),
+  (38, "Alent", 'Anggota'),
+  (39, "Susana Setyawati K", 'Anggota'),
+  (40, "Ajeng Lia (Margono)", 'Tetangga'),
+  (41, "Bagus Tri (Margono)", 'Tetangga'),
+  (42, "Bpk Sri", 'Tetangga'),
+  (43, "Keluarga Bpk Sri", 'Tetangga'),
+  (44, "Bapak Wakijo", 'Tetangga'),
+  (45, "Keluarga Bapak Wakijo", 'Tetangga'),
+  (46, "Bapak Prapto", 'Tetangga'),
+  (47, "Keluarga Bapak Prapto", 'Tetangga')
+on conflict (position) do update set
+  name = excluded.name,
+  category = excluded.category,
+  is_active = true;
 
 -- Realtime untuk sinkronisasi checklist antar perangkat.
 do $$
