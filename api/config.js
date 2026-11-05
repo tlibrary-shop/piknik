@@ -1,4 +1,4 @@
-export default function handler(req, res) {
+module.exports = function handler(req, res) {
   const url = process.env.SUPABASE_URL || "";
   const key = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "";
 
@@ -12,4 +12,4 @@ export default function handler(req, res) {
   }
 
   return res.status(200).json({ url, key });
-}
+};
