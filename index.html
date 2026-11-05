@@ -69,13 +69,13 @@
         <div class="panel"><div id="announcementList"><div class="empty">Belum ada pengumuman.</div></div></div>
       </section>
       <section class="section" id="page-settings">
-        <div class="welcome"><div><div class="eyebrow">KONFIGURASI APLIKASI</div><h1>Pengaturan</h1><p>Status penyimpanan data bersama dan akses koordinator.</p></div></div>
-        <div class="panel"><div class="panel-head"><div><h2>Penyimpanan data bersama</h2><p>Data disimpan di server aplikasi dan diperbarui otomatis pada semua perangkat.</p></div><span class="tag" id="connectionBadge">Memeriksa...</span></div>
-          <div class="notice info">Tidak perlu memasukkan URL atau API key. Data tersimpan di server aplikasi dan diperbarui otomatis setiap beberapa detik pada semua perangkat.</div>
-          <p class="muted" style="font-size:10px;line-height:1.6;margin-top:12px">Jika status belum terhubung, pengelola perlu memeriksa konfigurasi penyimpanan server di hosting.</p>
+        <div class="welcome"><div><div class="eyebrow">KONFIGURASI APLIKASI</div><h1>Pengaturan</h1><p>Status penyimpanan lokal dan akses koordinator.</p></div></div>
+        <div class="panel"><div class="panel-head"><div><h2>Penyimpanan lokal perangkat</h2><p>Data disimpan di server aplikasi dan diperbarui otomatis pada semua perangkat.</p></div><span class="tag" id="connectionBadge">Memeriksa...</span></div>
+          <div class="notice info">Tidak perlu ENV, API key, database, atau konfigurasi hosting. Data disimpan di penyimpanan browser pada perangkat ini.</div>
+          <p class="muted" style="font-size:10px;line-height:1.6;margin-top:12px">Catatan: data tidak otomatis tersinkron ke HP atau komputer lain. Gunakan browser/perangkat yang sama agar data tetap tersedia.</p>
         </div>
         <div class="panel"><div class="panel-head"><div><h2>Akses koordinator</h2><p>Login menggunakan kata sandi koordinator.</p></div></div><div id="authInfo" class="notice info">Belum login. Peserta dapat melihat data; hanya akun koordinator yang terdaftar dapat mengubah checklist.</div><div class="toolbar" style="margin-top:14px"><button class="btn btn-primary" id="settingsLoginBtn">Login koordinator</button><button class="btn btn-danger hidden" id="logoutBtn">Keluar</button></div></div>
-        <div class="panel"><div class="panel-head"><div><h2>Pengaturan awal</h2><p>Hanya perlu dilakukan oleh pengelola satu kali.</p></div></div><ol style="color:#627688;font-size:11px;line-height:1.9;padding-left:18px"><li>Penyimpanan server dikonfigurasi satu kali oleh pengelola hosting.</li><li>Setelah server aktif, kamu cukup login dengan kata sandi koordinator.</li><li>Sesi koordinator akan diingat pada perangkat ini.</li></ol><a href="https://github.com/tlibrary-shop/piknik/blob/main/README.md" target="_blank" rel="noopener" class="btn btn-soft">Panduan pengelola ↗</a></div>
+        <div class="panel"><div class="panel-head"><div><h2>Pengaturan awal</h2><p>Hanya perlu dilakukan oleh pengelola satu kali.</p></div></div><ol style="color:#627688;font-size:11px;line-height:1.9;padding-left:18px"><li>Data disimpan otomatis di browser perangkat ini.</li><li>Login koordinator menggunakan kata sandi 3twidy.</li><li>Data hanya tersedia pada perangkat dan browser ini.</li></ol><a href="https://github.com/tlibrary-shop/piknik/blob/main/README.md" target="_blank" rel="noopener" class="btn btn-soft">Panduan pengelola ↗</a></div>
         <div class="panel"><div class="panel-head"><div><h2>Informasi perjalanan</h2><p>Ringkasan konfigurasi saat ini</p></div></div><div class="route" id="settingsRoute"></div></div>
       </section>
       <div class="footer">PIKNIK TRIP CONTROL · Dibuat untuk perjalanan yang aman dan tertata.</div>
@@ -117,15 +117,24 @@ function renderAnnouncements(){const sorted=announcements.slice().sort((a,b)=>ne
 function renderAll(){renderRoute();renderStopTabs();renderParticipants();renderJourney();renderAttention();renderAnnouncements();renderStats();updateAuthUI()}
 function goto(p){page=p;$$('.section').forEach(x=>x.classList.remove('active'));$('#page-'+p).classList.add('active');$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.page===p));if(p==='journey')renderJourney();window.scrollTo({top:0,behavior:'smooth'})}
 $$('.nav').forEach(b=>b.onclick=()=>goto(b.dataset.page));$$('[data-goto]').forEach(b=>b.onclick=()=>goto(b.dataset.goto));
+const LOCAL_KEY='piknik_local_data_v1';
+const LOCAL_PASSWORD='3twidy';
+function readLocalState(){try{const saved=JSON.parse(localStorage.getItem(LOCAL_KEY)||'null');if(saved&&Array.isArray(saved.participants))return saved}catch(e){console.warn('Data lokal tidak terbaca:',e)}return {participants:demoParticipants.map(p=>({...p,id:p.id.replace(/^demo-/,'p-')})),events:[],announcements:[]}}
+function saveLocalState(){localStorage.setItem(LOCAL_KEY,JSON.stringify({participants,events,announcements}));setConnection(true,'Tersimpan di perangkat ini')}
 async function apiRequest(method='GET',payload=null){
- const response=await fetch('/api/data',{method,headers:{'Content-Type':'application/json',...(adminToken?{Authorization:'Bearer '+adminToken}:{})},...(payload?{body:JSON.stringify(payload)}:{})});
- const result=await response.json().catch(()=>({error:'Respons server tidak valid.'}));
- if(!response.ok)throw new Error(result.error||'Permintaan gagal ('+response.status+').');
- return result;
+ if(method==='GET')return {...readLocalState(),isAdmin:adminToken==='piknik-admin-session'};
+ if(payload?.type==='login'){if(payload.password!==LOCAL_PASSWORD)throw new Error('Kata sandi koordinator salah.');return {token:'piknik-admin-session'}}
+ if(adminToken!=='piknik-admin-session')throw new Error('Silakan login sebagai koordinator.');
+ if(payload?.type==='event'){const p=participants.find(x=>x.id===payload.participant_id);if(!p)throw new Error('Peserta tidak ditemukan.');events.push({id:'e-'+Date.now()+'-'+Math.random().toString(36).slice(2),participant_id:p.id,stop_key:payload.stop_key,action:payload.action,created_at:new Date().toISOString()})}
+ else if(payload?.type==='participant'){const p=participants.find(x=>x.id===payload.id);if(!p)throw new Error('Peserta tidak ditemukan.');p.name=payload.name;p.category=payload.category}
+ else if(payload?.type==='announcement')announcements.push({id:'a-'+Date.now(),title:payload.title,body:payload.body,created_at:new Date().toISOString()});
+ else throw new Error('Jenis perubahan tidak dikenal.');
+ saveLocalState();return {success:true};
 }
-async function connect(){try{await loadData();if(!refreshTimer)refreshTimer=setInterval(()=>{if(!document.hidden)loadData().catch(e=>console.warn('Sinkronisasi tertunda:',e))},7000)}catch(e){console.error(e);setConnection(false,'Server belum siap');toast('Gagal memuat data: '+e.message);participants=demoParticipants;renderAll()}}
-async function loadData(){const data=await apiRequest('GET');participants=data.participants||[];events=data.events||[];announcements=data.announcements||[];admins=!!data.isAdmin;user=admins?{email:'Koordinator'}:null;setConnection(true,'Data tersimpan · '+new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}));renderAll()}
-async function checkAdmin(){try{const data=await apiRequest('GET');admins=!!data.isAdmin;user=admins?{email:'Koordinator'}:null}catch(e){admins=false;user=null}updateAuthUI()}
+async function connect(){try{await loadData()}catch(e){console.error(e);setConnection(false,'Gagal memuat data');toast('Gagal memuat data: '+e.message)}}
+async function loadData(){const data=readLocalState();participants=data.participants||[];events=data.events||[];announcements=data.announcements||[];admins=adminToken==='piknik-admin-session';user=admins?{email:'Koordinator'}:null;setConnection(true,'Tersimpan di perangkat ini');renderAll()}
+async function checkAdmin(){admins=adminToken==='piknik-admin-session';user=admins?{email:'Koordinator'}:null;updateAuthUI()}
+window.addEventListener('storage',e=>{if(e.key===LOCAL_KEY){const d=readLocalState();participants=d.participants;events=d.events;announcements=d.announcements;renderAll()}});
 async function logAction(pid,action){if(!admins){toast('Hanya koordinator yang dapat mengubah checklist.');return}if(activeStop==='andi_berangkat'&&action!=='naik'){toast('Di titik keberangkatan, catat peserta yang naik bus.');return}if(activeStop==='andi_pulang'&&action!=='turun'){toast('Di titik akhir, catat peserta yang turun dari bus.');return}const s=getStatus(pid,activeStop);if(action==='turun'&&s.down){toast('Peserta sudah tercatat turun.');return}if(action==='naik'&&(!s.down&&activeStop!=='andi_berangkat'||s.up)){toast(s.up?'Peserta sudah tercatat naik.':'Catat turun terlebih dahulu.');return}try{await apiRequest('POST',{type:'event',participant_id:pid,stop_key:activeStop,action});await loadData();toast(action==='turun'?'Status turun tersimpan.':'Status naik tersimpan.')}catch(e){toast('Gagal menyimpan: '+e.message)}}
 function modal(title,desc,body,submitLabel,onSubmit){$('#modalRoot').innerHTML='<div class="modal-backdrop"><div class="modal"><h2>'+title+'</h2><p>'+desc+'</p>'+body+'<div class="toolbar" style="justify-content:flex-end;margin-top:16px"><button class="btn btn-plain" id="cancelModal">Batal</button><button class="btn btn-primary" id="submitModal">'+submitLabel+'</button></div></div></div>';$('#cancelModal').onclick=()=>$('#modalRoot').innerHTML='';$('#submitModal').onclick=async()=>{await onSubmit();}}
 function login(){modal('Login Koordinator','Masukkan kata sandi pengelola untuk membuka akses checklist dan pengaturan.','<div class="field"><label>KATA SANDI KOORDINATOR</label><input id="loginPassword" type="password" value="3twidy" autocomplete="current-password"></div>','Masuk',async()=>{const password=$('#loginPassword').value;if(!password){toast('Kata sandi wajib diisi.');return}try{const result=await apiRequest('POST',{type:'login',password});adminToken=result.token;localStorage.setItem('piknik_admin_token',adminToken);$('#modalRoot').innerHTML='';await loadData();toast('Login koordinator berhasil.')}catch(e){toast(e.message)}})}
